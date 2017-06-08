@@ -1,9 +1,22 @@
+Version 0.1.9, 2017-06-07
+-----------------------------------------------------------------------------------
+
+FEATURES / CHANGES
+
+- Addition of the `permuteTest.glmnetLRC()` method
+- `calcLoss()` is now exported
+
+FIXES
+
+- `coef.glmnetLRC()` returns a named vector when there is only one coefficient (typically the intercept), instead of an unnamed number.
+
+
 Version 0.1.8, 2016-07-01
 -----------------------------------------------------------------------------------
 
 FEATURES / CHANGES
 
-- `coef.glmnetLRC()` receieves a tolerance argument to avoid selecting coefficients that are very close to 0. 
+- `coef.glmnetLRC()` receieves a tolerance argument to avoid selecting coefficients that are very close to 0.
 
 
 Version 0.1.7, 2016-06-21

@@ -24,7 +24,7 @@ createSeeds <- function(masterSeed, cvReps) {
   if (i >= 20) {
     stop("Unique seed vector was not created")
   }
-    
+
 
   # Randomly select a vector of seeds from the unique set
   return(sample(seedVec, cvReps))
@@ -40,10 +40,10 @@ createSeeds <- function(masterSeed, cvReps) {
 generateTestSets <- function(truthLabels, cvFolds, cvReps, masterSeed, stratify) {
 
    # All the arguments above are passed directly from glmnetLRC()
-    
+
    # The number of observations
    n <- length(truthLabels)
-  
+
    # If cvFolds is equal to N, we have L.O.O. cross validation, and it doesn't make
    # sense to replicate.  Set cvReps to 1 if cvFolds == n.  No stratification if
    # we're performing L.O.O.
@@ -51,31 +51,31 @@ generateTestSets <- function(truthLabels, cvFolds, cvReps, masterSeed, stratify)
      cvReps <- 1
      stratify <- FALSE
    }
-    
-   ################################################################################ 
+
+   ################################################################################
    # cvReps of cvFold cross validation, this also handles L.O.O.
-   ################################################################################ 
+   ################################################################################
 
    if (!stratify) {
-       
+
      # A vector of seeds for cvReps
      seedVec <- createSeeds(masterSeed, cvReps)
      names(seedVec) <- paste("cvRep =", 1:cvReps)
-  
+
      # Generate replicated partitions
      out <- lapply(seedVec, function(x) Smisc::parseJob(n, cvFolds, random.seed = x))
-     
+
    }
-     
-   ################################################################################  
-   # Stratified sampling to ensure proporational sampling of both levels of the
+
+   ################################################################################
+   # Stratified sampling to ensure proportional sampling of both levels of the
    # response
    ################################################################################
    else {
 
      # This is only designed for two levels!
      Smisc::stopifnotMsg(nlevels(truthLabels) == 2, "There must be 2 levels in 'truthLabels' when 'stratify = TRUE'")
-       
+
      # Create a mapping for each level of the truthLabels
      level1indexes <- which(truthLabels == levels(truthLabels)[1])
      level2indexes <- which(truthLabels == levels(truthLabels)[2])
@@ -85,7 +85,7 @@ generateTestSets <- function(truthLabels, cvFolds, cvReps, masterSeed, stratify)
      # Base requirement:  each training set must have at least one ob from each level.
      # The requirement implemented below is more stringent:  each training set will have at least
      # cvFolds - 1 obs of each level (i.e., each testing set has at least one ob from each level)
-      
+
      # Now ensure that at least 1 ob from each level will be present in each test set
      if ((nlevel1 < cvFolds) | (nlevel2 < cvFolds)) {
 
@@ -97,7 +97,7 @@ generateTestSets <- function(truthLabels, cvFolds, cvReps, masterSeed, stratify)
          value <- levels(truthLabels)[2]
          nlevelval <- nlevel2
        }
-        
+
        stop("There are ", nlevelval, " observations where truthLabels = '", value,
             "', which is smaller than the number of cvFolds = ", cvFolds, ".\n",
             "This makes it difficult to create stratified cross-validation partitions.\n",
@@ -132,12 +132,12 @@ generateTestSets <- function(truthLabels, cvFolds, cvReps, masterSeed, stratify)
        }
 
        if (!all(check == 1:n)) {
-         stop("generateTestSets(): Algorithm for generating stratified cross validation folds failed, incorrect indexes")            
+         stop("generateTestSets(): Algorithm for generating stratified cross validation folds failed, incorrect indexes")
        }
 
        # Return results
        return(res)
-        
+
      } # allocate
 
      # Create two sets of seeds, twice the needed length
@@ -145,13 +145,13 @@ generateTestSets <- function(truthLabels, cvFolds, cvReps, masterSeed, stratify)
 
      # Convert it to a list of 2-vectors
      seedList <- Smisc::df2list(as.data.frame(matrix(seedVec, ncol = 2)), out.type = "vector")
-     
+
      # Now create multiple stratified partitions
      out <- lapply(seedList, allocate)
-      
+
    } # else stratify
-    
+
    return(out)
-    
+
 } # generateTestSets()
 

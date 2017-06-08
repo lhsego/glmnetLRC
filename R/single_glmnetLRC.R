@@ -13,7 +13,7 @@ single_glmnetLRC <- function(glmnetArgs,
                              alphaVec,
                              tauVec,
                              cvFolds,
-                             testFolds, 
+                             testFolds,
                              n,
                              verbose,
                              lambdaVal = NULL,
@@ -25,7 +25,7 @@ single_glmnetLRC <- function(glmnetArgs,
                       # lambdaVal & lambdaVal should both be provided or they should both be NULL
                       sum(is.null(lambdaVal), is.null(lambdaVec)) %in% c(0, 2),
                       "'lambdaVal' and 'lambdaVec' should both be provided or they should both be NULL")
-    
+
   # Function to train and test over the CV folds
   trainTest <- function(testSet, a = 1, lambdaV = NULL) {
 
@@ -47,13 +47,13 @@ single_glmnetLRC <- function(glmnetArgs,
            paste(testSet, collapse = ", "),
            "\nThe length of the table of truthLabels is not 2.  This should not have happened.")
     }
-    
+
     # Make sure both levels have at least one observation
     if (!all(tablePreds > 0)) {
 
       # Text message to more easily interpret the table
       tableMsg <- paste("truthLabel level", names(tablePreds), "has", tablePreds, "observations")
-        
+
       stop("For the training set containing these observations:\n",
            paste(testSet, collapse = ", "),
            "\nThere were no observations for at least one of the levels of 'truthLabels':\n",
@@ -72,12 +72,12 @@ single_glmnetLRC <- function(glmnetArgs,
 
     # Train the elastic net regression
     glmnetFit <- do.call(glmnet::glmnet, glmnetArgsTrain)
-    
+
     # Now test it
     out <- predLoss_glmnetLRC(glmnetFit, glmnetArgs$x[testSet,], glmnetArgs$y[testSet],
                               lossMat, tauVec = tauVec, lossWeight = lossWeight[testSet],
                               lambdaVec = lambdaVal)
-    
+
     return(out)
 
   } # trainTest
@@ -96,7 +96,7 @@ single_glmnetLRC <- function(glmnetArgs,
     if (is.null(lambdaVec)) {
 
       lambdaVec <- do.call(glmnet::glmnet, c(glmnetArgs, list(alpha = alpha)))$lambda
-    
+
     }
 
     # Now train/test over all the cv folds
@@ -141,7 +141,6 @@ single_glmnetLRC <- function(glmnetArgs,
   # If still tied, larger values of lambda are prefered because they reduce the
   # number of predictors to create a more parsimonous model with fewer predictors
   dfData$sqErrorTau <- (dfData$tau - 0.5)^2
-#  gridMinimum <- Smisc::sortDF(dfData, ~ ExpectedLoss + sqErrorTau - lambda)[1,]
   gridMinimum <- dfData[order(dfData$ExpectedLoss, dfData$sqErrorTau, -dfData$lambda),][1,]
 
   # Return the optimal lambda, tau, and alpha for this particular seed

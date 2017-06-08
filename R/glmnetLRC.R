@@ -96,7 +96,8 @@
 ##' do no good, whereas if \code{cvReps = 2}, each cross validation replicate would be run
 ##' separately in its own thread if \code{nJobs = 2}.
 ##' Parallelization is executed using \href{http://pnnl.github.io/docs-Smisc/rd.html#parlapplyw}{parLapplyW()}
-##' from the \href{http://pnnl.github.io/docs-Smisc}{Smisc} package.
+##' from the \href{http://pnnl.github.io/docs-Smisc}{Smisc} package.  For the \code{permuteTest} method, the
+##' number of cores on the local host to use for the permutation test.
 ##'
 ##' @param estimateLoss A logical, set to \code{TRUE} to calculate the average loss estimated via
 ##' cross validation using the optimized parameters \eqn{(\alpha, \lambda, \tau)} to fit the elastic
@@ -113,7 +114,8 @@
 ##' Certain arguments of \code{\link{glmnet}} are reserved by the \code{glmnetLRC} package and an error message will make that
 ##' clear if they are used.  In particular, arguments that control the behavior of \eqn{\alpha} and \eqn{\lambda} are reserved.
 ##' For the \code{plot} method, the "\dots" are additional arguments to the default S3 method \code{\link{pairs}}.  And for
-##' the \code{print}, \code{coef}, \code{predict}, \code{missingpreds}, and \code{extract} methods, the "\dots" are ignored.
+##' the \code{print}, \code{coef}, \code{predict}, \code{missingpreds}, \code{permuteTest}, and \code{extract} methods,
+##' the "\dots" are ignored.
 ##'
 ##' @return
 ##' An object of class \code{glmnetLRC}, which
@@ -123,11 +125,14 @@
 ##' It also contains the following additional elements:
 ##' \describe{
 ##' \item{lossMat}{The loss matrix used as the criteria for selecting optimal tuning parameters}
+##' \item{lossWeight}{The vector \code{lossWeight} passed to \code{glmnetLRC()}}
 ##' \item{parms}{A data fame that contains the tuning parameter estimates for \eqn{(\alpha, \lambda, \tau)} that minimize
 ##' the expected loss for each cross validation replicate.  Used by the \code{plot} method.}
 ##' \item{optimalParms}{A named vector that contains the final estimates of \eqn{(\alpha, \lambda, \tau)}, calculated as the
 ##' element-wise median of \code{parms}}
-##' \item{lossEstimates}{If \code{estimateLoss = TRUE}, this element is a data frame with the expected loss
+##' \item{truthLabels}{The vector of \code{truthLabels} passed to \code{glmnetLRC()}}
+##' \item{predictors}{The matrix of \code{predictors} passed to \code{glmnetLRC()}}
+##' ##' \item{lossEstimates}{If \code{estimateLoss = TRUE}, this element is a data frame with the expected loss
 ##' for each cross validation replicate}
 ##' }
 ##'
@@ -141,6 +146,9 @@
 ##' Friedman J, Hastie T, Tibshirani R. 2010. Regularization Paths for Generalized
 ##' Linear Models via Coordinate Descent. Journal of Statistical Software.
 ##' 33(1), 1-22.
+##'
+##' Ojala M, Garriga GC. 2010. Permutation Tests for Studying Classifier Performance. Journal of Machine
+##' Learning Research. 11, 1833-1863.
 ##'
 ##' @seealso \code{\link{summary.LRCpred}}, a summary method for objects of class
 ##' \code{LRCpred}, produced by the \code{predict} method.
@@ -413,10 +421,8 @@ glmnetLRC <- function(truthLabels, predictors,
 
   }
 
-  # The final parameter estimates will be the (alpha, lambda, tau) centroid in
+  # The final parameter estimates will be the (alpha, lambda, tau) median centroid in
   # the parameter estimates
-
-  # Use the median instead...
   finalParmEstimates <- apply(parmEstimates[,c("alpha", "lambda", "tau")], 2, median)
 
 
@@ -424,7 +430,7 @@ glmnetLRC <- function(truthLabels, predictors,
   # Create the final model from the averaged parameters
   ################################################################################
 
-  # Create an aggregated lambda sequence to fit the final lasso logisitc
+  # Create an aggregated lambda sequence to fit the final lasso logistic
   # regression model. Per the documentation in glmnetfit, it does better
   # with a sequence of lambdas during the fitting.  But the predict method only
   # operates on the optimal lambda
@@ -439,14 +445,19 @@ glmnetLRC <- function(truthLabels, predictors,
   glmnetFinal <- do.call(glmnet::glmnet,
                          c(glmnetArgs, list(lambda = lambdaVec, alpha = finalParmEstimates[["alpha"]])))
 
-  # Add the loss matrix
+  # Add the loss matrix and the weights
   glmnetFinal$lossMat <- lossMat
+  glmnetFinal$lossWeight <- lossWeight
 
   # Return the optimal parameters for graphical output
   glmnetFinal$parms <- parmEstimates
 
   # Return the finalized tuning parameters (median of the cross validation replicates)
   glmnetFinal$optimalParms <- finalParmEstimates
+
+  # Add in the original data and loss weights.  This will be needed for permutation tests
+  glmnetFinal$truthLabels <- truthLabels
+  glmnetFinal$predictors <- predictors
 
   ################################################################################
   # If we are to estimate the loss by averaging the cross validation loss over
@@ -526,7 +537,7 @@ print.glmnetLRC <- function(x, verbose = TRUE, ...) {
   # Check verbose
   Smisc::stopifnotMsg(is.logical(verbose) & (length(verbose) == 1),
                       "'verbose' must be TRUE or FALSE")
-    
+
   # Find the index of the optimal lambda in the glmnet object
   indexMatch <- order(abs(x$lambda -
                           x$optimalParms["lambda"]))[1]
@@ -645,7 +656,7 @@ coef.glmnetLRC <- function(object, tol = 1e-10, ...) {
                         } else FALSE
                       } else FALSE,
                       "'tol' should be a small, positive number")
-  
+
   # Verify the optimal lambda is in there (it should be)
   if (!(object$optimalParms[["lambda"]] %in% object$lambda)) {
     stop("Unexpected error.  The optimal value of lambda was not in 'glmnetLRC_ojbect$lambda'")
@@ -658,7 +669,7 @@ coef.glmnetLRC <- function(object, tol = 1e-10, ...) {
 
   # Remove the 0's
   zeroCoefs <- abs(coefs[,1]) < tol
-  
+
   return(coefs[!zeroCoefs,])
 
 } # coef.glmnetLRC
@@ -673,7 +684,8 @@ coef.glmnetLRC <- function(object, tol = 1e-10, ...) {
 ##' from \code{data.frame}) that contains the predicted probabilities (\code{Prob}) and class (\code{predictClass})
 ##' for each observation.  The \code{Prob} column corresponds to the predicted probability that an observation belongs
 ##' to the second level of \code{truthLabels}. The columns indicated by \code{truthCol} and \code{keepCols} are included
-##' if they were requested.  The \code{LRCpred} class has two methods:  \code{\link{summary.LRCpred}} and \code{\link{plot.LRCpred}}.
+##' if they were requested.  The \code{LRCpred} class has two methods:  \code{\link{summary.LRCpred}}
+##' and \code{\link{plot.LRCpred}}.
 ##'
 ##' @param newdata A dataframe or matrix containing the new set of observations to
 ##' be predicted, as well as an optional column of true labels.
@@ -681,8 +693,8 @@ coef.glmnetLRC <- function(object, tol = 1e-10, ...) {
 ##' to fit the elastic-net logistic regression classifier.
 ##'
 ##' @param truthCol The column number or column name in \code{newdata} that contains the
-##' true labels, which should be a factor (and this implies \code{newdata} should be a dataframe if \code{truthCol} is provided).
-##' Optional.
+##' true labels, which should be a factor (and this implies \code{newdata} should be a dataframe if \code{truthCol}
+##' is provided). Optional.
 ##'
 ##' @param keepCols A numeric vector of column numbers (or a character vector of
 ##' column names) in \code{newdata} that will be 'kept' and returned with the predictions. Optional.
@@ -703,7 +715,7 @@ predict.glmnetLRC <- function(object,
   # Check newdata
   Smisc::stopifnotMsg(is.matrix(newdata) | is.data.frame(newdata),
                       "'newdata' must be a matrix or dataframe")
-  
+
   # Switching from column numbers to column names if necessary
   truthCol <- Smisc::selectElements(truthCol, colnames(newdata))
   keepCols <- Smisc::selectElements(keepCols, colnames(newdata))
@@ -792,7 +804,7 @@ missingpreds.glmnetLRC <- function(object, newdata, ...) {
 
   Smisc::stopifnotMsg(is.matrix(newdata) | is.data.frame(newdata),
                       "'newdata' must be a matrix or dataframe")
-    
+
   # Get the predictor names expected by the object
   predictorNames <- object$beta@Dimnames[[1]]
 
@@ -811,13 +823,107 @@ missingpreds.glmnetLRC <- function(object, newdata, ...) {
 
 extract.glmnetLRC <- function(object, ...) {
 
-  # Remove the lossMat, parms, optimalParms, and lossEstimates elements of the object.
-  out <- object[-which(names(object) %in% c("lossMat", "parms", "optimalParms", "lossEstimates"))]
+  # Remove the elements that were added to the 'glmnet' object
+  out <- object[-which(names(object) %in% c("lossMat", "parms", "optimalParms", "truthLabels",
+                                            "predictors", "lossEstimates"))]
 
-  # Remove it's LRCglmnet class.
+  # Remove its LRCglmnet class.
   class(out) <- class(object)[-which(class(object) == "glmnetLRC")]
 
   return(out)
 
 } # extract.glmnetLRC
+
+##' @method permuteTest glmnetLRC
+##'
+##' @describeIn glmnetLRC Performs a permutation test to determine whether the LRC has found "a significant class
+##' structure, that is, a real connection between the [predictors] and the class labels" (Ojala and Garriga, 2010).  The
+##' \code{truthLabels} are randomly permuted \code{n} times, and the loss is calculated for each permutation
+##' to generate a null distribution of the expected loss.  The fraction of permutations with loss values that are
+##' less than or equal to the \code{mean.ExpectedLoss} is the p-value.  A significant (small) p-value indicates
+##' there is a significant class structure.  Returns the p-value of the permutation test. This method can only be used if
+##' \code{estimateLoss = TRUE} in the call to \code{glmnetLRC()}.
+##'
+##' @param n The number of times the \code{truthLabels} should be permuted.  The larger \code{n}, the more accurate
+##' the p-value.
+##'
+##' @param permSeed An integer that governs the random permutations of the \code{truthLabels}
+##'
+##' @export
+
+permuteTest.glmnetLRC <- function(object, n = 1000, permSeed = 1, nJobs = 1, ...) {
+
+  # Verify we have loss estimates to work with
+  if (!("lossEstimates" %in% names(object))) {
+    stop("Permutation test cannot be calculated unless the orginal 'glmnetLRC'\n",
+         "object was created using 'estimateLoss = TRUE' in the call to 'glmnetLRC()'")
+  }
+
+
+  # Check the n and permSeed arguments
+  Smisc::stopifnotMsg(if ((length(n) ==  1) & (is.numeric(n))) (n > 0) & (n %% 1 == 0) else FALSE,
+                      "'n' must be a positive integer",
+                      (length(permSeed) == 1) & is.numeric(permSeed),
+                      "'permSeed' must be a numeric value of length 1",
+                      if ((length(nJobs) ==  1) & (is.numeric(nJobs))) (nJobs > 0) & (nJobs %% 1 == 0) else FALSE,
+                      "'nJobs' must be a positive integer")
+
+  # Create the predictions using the 'final' model and the original data
+  predLabels <- predict(object, object$predictors)$PredictClass
+
+  # Get a slimmed down version of the object to minimize data-schlepping
+  slimObject <- c(object[c("truthLabels", "lossMat", "lossWeight")], list(predLabels = predLabels))
+
+  # A function for creating the permutation and calculating the loss
+  cLoss <- function() {
+
+    cl <- calcLoss(sample(slimObject$truthLabels), slimObject$predLabels,
+                   slimObject$lossMat, lossWeight = slimObject$lossWeight)
+
+    return(cl$weightedSumLoss / cl$sumWeights)
+
+  } # cLoss
+
+  # Non parallelization
+  if (nJobs == 1) {
+    set.seed(permSeed)
+    nullDistLoss <- replicate(n, cLoss())
+  }
+
+  # Parallelized
+  else {
+
+    # Create vector with the number of elements to replicate.  The sum should be equal to n
+    nVec <- lengths(Smisc::parseJob(n, nJobs))
+
+    # quick check
+    Smisc::stopifnotMsg(sum(nVec) == n, "Unexpected error: 'nVec' != 'n")
+
+    # Create a set of seeds to go with it
+    sVec <- createSeeds(permSeed, nJobs)
+
+    # A list of seeds and number of replications
+    pList <- Smisc::df2list(data.frame(n = nVec, s = sVec))
+
+    # Paralleized computation of the null distribution
+    nullDistLoss <- unlist(Smisc::parLapplyW(
+      pList,
+      function(x) {set.seed(x$s); return(replicate(x$n, cLoss()))},
+      njobs = nJobs,
+      varlist = c("cLoss", "slimObject"),
+      expr = expression(library(glmnetLRC))))
+
+  }
+
+  # Get the mean.ExpectedLoss
+  mel <- print(object, verbose = FALSE)[,"mean.ExpectedLoss"]
+
+  # Now calculate and return the p-value:  the number items in the null distribution that are <= to the mean.ExpectedError
+  return(list(nullDist = nullDistLoss,
+              mean.ExpectedLoss = mel,
+              pval = (sum(nullDistLoss <= mel) + 1) / (n + 1)))
+
+} # permuteTest.glmnetLRC
+
+
 
