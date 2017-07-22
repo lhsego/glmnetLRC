@@ -19,4 +19,3 @@ Signatures for Mass Spectrometry Data Quality.
 Journal of Proteome Research. 13(4), 2215-2222.
 \url{http://pubs.acs.org/doi/abs/10.1021/pr401143e}
 }
-

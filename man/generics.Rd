@@ -3,10 +3,12 @@
 \name{extract}
 \alias{extract}
 \alias{missingpreds}
-\title{Generics for \code{extract} and \code{missingpreds} methods}
+\alias{permuteTest}
+\title{Generics for \code{extract}, \code{missingpreds}, and \code{permuteTest} methods}
 \usage{
 extract(object, ...)
 missingpreds(object, ...)
+permuteTest(object, ...)
 }
 \arguments{
 \item{object}{The object on which the generic operates}
@@ -14,6 +16,5 @@ missingpreds(object, ...)
 \item{\dots}{Arguments passed to specific methods}
 }
 \description{
-Generics for \code{extract} and \code{missingpreds} methods
+Generics for \code{extract}, \code{missingpreds}, and \code{permuteTest} methods
 }
-

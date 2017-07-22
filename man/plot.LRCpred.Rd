@@ -46,10 +46,9 @@ showing the value of the probability threshold, \eqn{\tau}.
 \description{
 Plot the predictions of logistic regression classifier
 }
-\author{
-Landon Sego
-}
 \seealso{
 See \code{\link{glmnetLRC}} for an example.
 }
-
+\author{
+Landon Sego
+}

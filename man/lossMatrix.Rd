@@ -49,4 +49,3 @@ lossMatrix(c("a","a","b"), c("a","b","b"), c(0, 1, 0))
 \author{
 Landon Sego
 }
-

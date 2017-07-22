@@ -18,11 +18,10 @@ and \code{\link{predict.glmnetLRC}}
 \tabular{ll}{
 Package: \tab glmnetLRC\cr
 Type: \tab Package\cr
-Version: \tab 0.1.8\cr
-Date: \tab 2016-07-01\cr
+Version: \tab 0.1.9\cr
+Date: \tab 2017-06-07\cr
 License: \tab file LICENSE\cr }
 }
 \author{
 Landon Sego, Alex Venzin, John Ramey
 }
-

@@ -4,7 +4,7 @@
 ##' functions from the \href{http://cran.r-project.org/package=glmnet}{glmnet}
 ##' package. It uses cross validation to identify optimal elastic-net parameters and a
 ##' threshold parameter for binary classification, where optimality is defined
-##' by minimizing an arbitrary, user-specified discrete loss function.
+##' by minimizing a user-specified discrete loss function.
 ##'
 ##' @details
 ##' For a given partition of the training data, cross validation is
@@ -150,8 +150,8 @@
 ##' Ojala M, Garriga GC. 2010. Permutation Tests for Studying Classifier Performance. Journal of Machine
 ##' Learning Research. 11, 1833-1863.
 ##'
-##' @seealso \code{\link{summary.LRCpred}}, a summary method for objects of class
-##' \code{LRCpred}, produced by the \code{predict} method.
+##' @seealso \code{\link{summary.LRCpred}}, \code{\link{plot.LRCpred}, \code{\link{print.permuteTest}}, and
+##' \code{\link{plot.permuteTest}}, methods for objects produced by the \code{predict} and {permuteTest} methods.
 ##'
 ##' @examples
 ##' # Load the VOrbitrap Shewanella QC data from Amidan et al.
@@ -468,9 +468,6 @@ glmnetLRC <- function(truthLabels, predictors,
 
   if (estimateLoss) {
 
-    ################################################################################
-    # Run on the cluster which was set up earlier
-    ################################################################################
     if (nJobs > 1) {
 
       # Execute the loss calculation in parallel
@@ -527,7 +524,7 @@ glmnetLRC <- function(truthLabels, predictors,
 ##' In addition, all of this same information is returned invisibly as a matrix. Display of the information
 ##' can be suppressed by setting \code{verbose = FALSE} in the call to \code{print}.
 ##'
-##' @param x For the \code{print} and \code{plot} methods:  an object of class \code{glmnetLRC} (returned
+##' @param x (\code{print}, \code{plot} methods) An object of class \code{glmnetLRC} (returned
 ##' by \code{glmnetLRC()}), which contains the optimally-trained elastic-net logistic regression classifier.
 ##'
 ##' @export
@@ -634,11 +631,11 @@ plot.glmnetLRC <- function(x, ...){
 ##' on the fitted glmnet object and returns a named vector of the non-zero elastic-net logistic
 ##' regression coefficients using the optimal values of \eqn{\alpha} and \eqn{\lambda}.
 ##'
-##' @param object For the \code{coef}, \code{predict}, and \code{extract} methods:
+##' @param object (\code{coef}, \code{predict}, \code{missingPreds}, \code{extract}, \code{permuteTest} methods)
 ##' an object of class \code{glmnetLRC} (returned by \code{glmnetLRC()})
 ##' which contains the optimally-trained elastic-net logistic regression classifier.
 ##'
-##' @param tol A small positive number, such that coefficients with an absolute value smaller than
+##' @param tol (\code{coef} method) A small positive number, such that coefficients with an absolute value smaller than
 ##' \code{tol} are not returned.
 ##'
 ##' @export
@@ -687,16 +684,16 @@ coef.glmnetLRC <- function(object, tol = 1e-10, ...) {
 ##' if they were requested.  The \code{LRCpred} class has two methods:  \code{\link{summary.LRCpred}}
 ##' and \code{\link{plot.LRCpred}}.
 ##'
-##' @param newdata A dataframe or matrix containing the new set of observations to
+##' @param newdata (\code{predict} method) A dataframe or matrix containing the new set of observations to
 ##' be predicted, as well as an optional column of true labels.
 ##' \code{newdata} should contain all of the column names that were used
 ##' to fit the elastic-net logistic regression classifier.
 ##'
-##' @param truthCol The column number or column name in \code{newdata} that contains the
+##' @param truthCol (\code{predict} method) The column number or column name in \code{newdata} that contains the
 ##' true labels, which should be a factor (and this implies \code{newdata} should be a dataframe if \code{truthCol}
 ##' is provided). Optional.
 ##'
-##' @param keepCols A numeric vector of column numbers (or a character vector of
+##' @param keepCols (\code{predict} method) A numeric vector of column numbers (or a character vector of
 ##' column names) in \code{newdata} that will be 'kept' and returned with the predictions. Optional.
 ##'
 ##' @export
@@ -841,13 +838,15 @@ extract.glmnetLRC <- function(object, ...) {
 ##' \code{truthLabels} are randomly permuted \code{n} times, and the loss is calculated for each permutation
 ##' to generate a null distribution of the expected loss.  The fraction of permutations with loss values that are
 ##' less than or equal to the \code{mean.ExpectedLoss} is the p-value.  A significant (small) p-value indicates
-##' there is a significant class structure.  Returns the p-value of the permutation test. This method can only be used if
-##' \code{estimateLoss = TRUE} in the call to \code{glmnetLRC()}.
+##' there is a significant class structure.  This method can only be used if
+##' \code{estimateLoss = TRUE} in the call to \code{glmnetLRC()}.  Returns an object of class \code{permuteTest} (which inherits
+##' from \code{list}) that contains a vector of the null distribution of the loss, the mean expected loss, and the p-value.
+##' The \code{permuteTest} class has two methods:  \code{\link{print.permuteTest}} and \code{\link{plot.permuteTest}}.
 ##'
-##' @param n The number of times the \code{truthLabels} should be permuted.  The larger \code{n}, the more accurate
+##' @param n (\code{permuteTest} method) The number of times the \code{truthLabels} should be permuted.  The larger \code{n}, the more accurate
 ##' the p-value.
 ##'
-##' @param permSeed An integer that governs the random permutations of the \code{truthLabels}
+##' @param permSeed (\code{permuteTest} method) An integer that governs the random permutations of the \code{truthLabels}.
 ##'
 ##' @export
 
@@ -919,9 +918,13 @@ permuteTest.glmnetLRC <- function(object, n = 1000, permSeed = 1, nJobs = 1, ...
   mel <- print(object, verbose = FALSE)[,"mean.ExpectedLoss"]
 
   # Now calculate and return the p-value:  the number items in the null distribution that are <= to the mean.ExpectedError
-  return(list(nullDist = nullDistLoss,
+  out <- list(nullDist = nullDistLoss,
               mean.ExpectedLoss = mel,
               pval = (sum(nullDistLoss <= mel) + 1) / (n + 1)))
+
+  class(out) <- c("permuteTest", class(out))
+
+  return(out)
 
 } # permuteTest.glmnetLRC
 

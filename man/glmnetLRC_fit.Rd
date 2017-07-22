@@ -15,4 +15,3 @@ here in the package because it is time consuming to generate.
 # Load fitted glmnetLRC model
 data(glmnetLRC_fit)
 }
-
