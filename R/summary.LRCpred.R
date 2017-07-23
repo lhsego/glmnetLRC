@@ -11,7 +11,7 @@
 ##' @param object An object of class \code{LRCpred} returned by
 ##' \code{\link{predict.glmnetLRC}}.
 ##'
-##' @param \dots Arguments passed to \code{\link{print}} methods. Ignored by the \code{summary} method.
+##' @param \dots (\code{print} method): Arguments passed to \code{\link{print.default}}. (\code{summary} method): Ignored.
 ##'
 ##' @return Returns a \code{summaryLRCpred} object.  If \code{truthCol} was provided in the call to
 ##' \code{\link{predict.glmnetLRC}}, the result is a list with the following elements:

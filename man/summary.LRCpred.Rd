@@ -13,7 +13,7 @@
 \item{object}{An object of class \code{LRCpred} returned by
 \code{\link{predict.glmnetLRC}}.}
 
-\item{\dots}{Arguments passed to \code{\link{print}} methods. Ignored by the \code{summary} method.}
+\item{\dots}{(\code{print} method): Arguments passed to \code{\link{print.default}}. (\code{summary} method): Ignored.}
 
 \item{x}{An object of class \code{summaryLRCpred}.}
 }

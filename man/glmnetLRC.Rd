@@ -107,7 +107,7 @@ For the \code{plot} method, the "\dots" are additional arguments to the default 
 the \code{print}, \code{coef}, \code{predict}, \code{missingpreds}, \code{permuteTest}, and \code{extract} methods,
 the "\dots" are ignored.}
 
-\item{x}{(\code{print} and \code{plot} methods) An object of class \code{glmnetLRC} (returned
+\item{x}{(\code{print}, \code{plot} methods) An object of class \code{glmnetLRC} (returned
 by \code{glmnetLRC()}), which contains the optimally-trained elastic-net logistic regression classifier.}
 
 \item{object}{(\code{coef}, \code{predict}, \code{missingPreds}, \code{extract}, \code{permuteTest} methods)
@@ -129,10 +129,10 @@ is provided). Optional.}
 \item{keepCols}{(\code{predict} method) A numeric vector of column numbers (or a character vector of
 column names) in \code{newdata} that will be 'kept' and returned with the predictions. Optional.}
 
-\item{n}{(\code{permute} method) The number of times the \code{truthLabels} should be permuted.  The larger \code{n}, the more accurate
+\item{n}{(\code{permuteTest} method) The number of times the \code{truthLabels} should be permuted.  The larger \code{n}, the more accurate
 the p-value.}
 
-\item{permSeed}{(\code{permute} method) An integer that governs the random permutations of the \code{truthLabels}.}
+\item{permSeed}{(\code{permuteTest} method) An integer that governs the random permutations of the \code{truthLabels}.}
 }
 \value{
 An object of class \code{glmnetLRC}, which
@@ -232,8 +232,10 @@ structure, that is, a real connection between the [predictors] and the class lab
 \code{truthLabels} are randomly permuted \code{n} times, and the loss is calculated for each permutation
 to generate a null distribution of the expected loss.  The fraction of permutations with loss values that are
 less than or equal to the \code{mean.ExpectedLoss} is the p-value.  A significant (small) p-value indicates
-there is a significant class structure.  Returns the p-value of the permutation test. This method can only be used if
-\code{estimateLoss = TRUE} in the call to \code{glmnetLRC()}.
+there is a significant class structure.  This method can only be used if
+\code{estimateLoss = TRUE} in the call to \code{glmnetLRC()}.  Returns an object of class \code{permuteTest} (which inherits
+from \code{list}) that contains a vector of the null distribution of the loss, the mean expected loss, and the p-value.
+The \code{permuteTest} class has two methods:  \code{\link{print.permuteTest}} and \code{\link{plot.permuteTest}}.
 }}
 
 \examples{
@@ -322,8 +324,8 @@ Ojala M, Garriga GC. 2010. Permutation Tests for Studying Classifier Performance
 Learning Research. 11, 1833-1863.
 }
 \seealso{
-\code{\link{summary.LRCpred}}, a summary method for objects of class
-\code{LRCpred}, produced by the \code{predict} method.
+\code{\link{summary.LRCpred}}, \code{\link{plot.LRCpred}}, \code{\link{print.permuteTest}}, and
+\code{\link{plot.permuteTest}}, methods for objects produced by the \code{predict} and \code{permuteTest} methods.
 }
 \author{
 Landon Sego, Alex Venzin

@@ -150,8 +150,8 @@
 ##' Ojala M, Garriga GC. 2010. Permutation Tests for Studying Classifier Performance. Journal of Machine
 ##' Learning Research. 11, 1833-1863.
 ##'
-##' @seealso \code{\link{summary.LRCpred}}, \code{\link{plot.LRCpred}, \code{\link{print.permuteTest}}, and
-##' \code{\link{plot.permuteTest}}, methods for objects produced by the \code{predict} and {permuteTest} methods.
+##' @seealso \code{\link{summary.LRCpred}}, \code{\link{plot.LRCpred}}, \code{\link{print.permuteTest}}, and
+##' \code{\link{plot.permuteTest}}, methods for objects produced by the \code{predict} and \code{permuteTest} methods.
 ##'
 ##' @examples
 ##' # Load the VOrbitrap Shewanella QC data from Amidan et al.
@@ -920,7 +920,7 @@ permuteTest.glmnetLRC <- function(object, n = 1000, permSeed = 1, nJobs = 1, ...
   # Now calculate and return the p-value:  the number items in the null distribution that are <= to the mean.ExpectedError
   out <- list(nullDist = nullDistLoss,
               mean.ExpectedLoss = mel,
-              pval = (sum(nullDistLoss <= mel) + 1) / (n + 1)))
+              pval = (sum(nullDistLoss <= mel) + 1) / (n + 1))
 
   class(out) <- c("permuteTest", class(out))
 
