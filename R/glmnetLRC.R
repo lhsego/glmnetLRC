@@ -821,7 +821,7 @@ missingpreds.glmnetLRC <- function(object, newdata, ...) {
 extract.glmnetLRC <- function(object, ...) {
 
   # Remove the elements that were added to the 'glmnet' object
-  out <- object[-which(names(object) %in% c("lossMat", "parms", "optimalParms", "truthLabels",
+  out <- object[-which(names(object) %in% c("lossMat", "lossWeight", "parms", "optimalParms", "truthLabels",
                                             "predictors", "lossEstimates"))]
 
   # Remove its LRCglmnet class.
@@ -859,7 +859,7 @@ permuteTest.glmnetLRC <- function(object, n = 1000, permSeed = 1, nJobs = 1, ...
   }
 
 
-  # Check the n and permSeed arguments
+  # Check the n, permSeed, and nJobs arguments
   Smisc::stopifnotMsg(if ((length(n) ==  1) & (is.numeric(n))) (n > 0) & (n %% 1 == 0) else FALSE,
                       "'n' must be a positive integer",
                       (length(permSeed) == 1) & is.numeric(permSeed),
